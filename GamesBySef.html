@@ -1,0 +1,219 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GamesBySef</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#090d13;color:#f3f6fb;font:16px Arial,sans-serif}
+header{padding:22px 5%;background:#101722;border-bottom:1px solid #293646;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font-size:30px}
+button,input{font:inherit}
+button{cursor:pointer;border:0;border-radius:8px;padding:10px 14px}
+.primary{background:#1685f8;color:white}
+.secondary{background:#293747;color:white}
+main{max-width:1100px;margin:35px auto;padding:0 20px}
+#search,.field{width:100%;padding:13px;background:#151e29;border:1px solid #334253;border-radius:9px;color:white}
+#search{margin-bottom:24px}
+#games{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.card{background:#121b26;border:1px solid #273444;border-radius:10px;padding:13px}
+.thumb{height:125px;background:#0a111b;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:38px;color:#52677f;overflow:hidden;margin-bottom:12px}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.row{display:flex;align-items:center;gap:8px}
+.name{color:white;text-decoration:none;font-weight:bold;overflow-wrap:anywhere;flex:1}
+.admin{display:flex;gap:6px;margin-top:12px}
+.admin button{padding:8px;font-size:14px}
+#empty{color:#9aa8ba;text-align:center;padding:25px}
+#owner{display:none;margin-bottom:20px;gap:8px;flex-wrap:wrap}
+dialog{width:min(430px,92vw);background:#121b26;color:white;border:1px solid #344456;border-radius:12px;padding:24px}
+dialog::backdrop{background:#000b}
+label{display:block;margin:14px 0 6px;color:#b9c7d8}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.notice{color:#aebdd0;font-size:14px;margin:12px 0}
+@media(max-width:500px){h1{font-size:23px}header{padding:18px 4%}main{padding:0 12px}#games{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.thumb{height:95px}}
+</style>
+</head>
+<body>
+<header>
+<h1>GamesBySef</h1>
+<button class="secondary" id="loginButton">Owner login</button>
+</header>
+<main>
+<div id="owner">
+<button class="primary" id="addButton">+ Add Game</button>
+<button class="secondary" id="logoutButton">Log out</button>
+</div>
+<input id="search" placeholder="Search games..." aria-label="Search games">
+<div id="games"></div>
+<div id="empty">Loading games...</div>
+</main>
+
+<dialog id="loginDialog">
+<form id="loginForm">
+<h2>Owner login</h2>
+<label for="email">Email</label>
+<input class="field" id="email" type="email" required autocomplete="username">
+<label for="password">Password</label>
+<input class="field" id="password" type="password" required autocomplete="current-password">
+<p class="notice" id="loginMessage">Sign in with your Supabase owner account.</p>
+<div class="actions">
+<button class="secondary" type="button" id="cancelLogin">Cancel</button>
+<button class="primary" type="submit">Sign in</button>
+</div>
+</form>
+</dialog>
+
+<dialog id="gameDialog">
+<form id="gameForm">
+<h2 id="gameHeading">Add Game</h2>
+<label for="gameName">Game name</label>
+<input class="field" id="gameName" required maxlength="80">
+<label for="gameUrl">Game URL</label>
+<input class="field" id="gameUrl" type="url" required placeholder="https://example.com">
+<label for="gameImage">Thumbnail URL (optional)</label>
+<input class="field" id="gameImage" type="url" placeholder="https://example.com/image.png">
+<div class="actions">
+<button class="secondary" type="button" id="cancelGame">Cancel</button>
+<button class="primary" type="submit">Save</button>
+</div>
+</form>
+</dialog>
+
+<script>
+/* Replace both placeholders with your Supabase Project URL and Publishable key. */
+const SUPABASE_URL = 'https://sdecnzctpbybbwvgujpv.supabase.co/rest/v1/';
+const SUPABASE_KEY = 'sb_publishable_bjMsWuFq_6iM7-Oy-JnHEg_4hNY67Yb';
+
+const gamesEl=document.getElementById('games');
+const emptyEl=document.getElementById('empty');
+const ownerEl=document.getElementById('owner');
+const loginButton=document.getElementById('loginButton');
+const loginDialog=document.getElementById('loginDialog');
+const gameDialog=document.getElementById('gameDialog');
+let db=null, games=[], editingId=null, session=null;
+
+function safeUrl(value){
+  try{
+    const u=new URL(value);
+    return ['https:','http:'].includes(u.protocol)?u.href:'';
+  }catch(e){return ''}
+}
+function status(message){emptyEl.hidden=false;emptyEl.textContent=message}
+
+async function init(){
+  if(SUPABASE_URL.includes('PASTE_')||SUPABASE_KEY.includes('PASTE_')){
+    status('Add your Supabase Project URL and publishable key in index.html.');
+    return;
+  }
+  if(!window.supabase){
+    status('Could not load the database library. Refresh and try again.');
+    return;
+  }
+  db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const {data}=await db.auth.getSession();
+  session=data.session;
+  await refresh();
+  db.auth.onAuthStateChange((_event,newSession)=>{
+    session=newSession;
+    updateOwner();
+    refresh();
+  });
+}
+function updateOwner(){
+  ownerEl.style.display=session?'flex':'none';
+  loginButton.textContent=session?'Signed in':'Owner login';
+}
+async function refresh(){
+  if(!db)return;
+  updateOwner();
+  const {data,error}=await db.from('games').select('id,name,url,image').order('created_at');
+  if(error){games=[];render();status('Could not load games. Check the Supabase settings and permissions.');return}
+  games=data||[];
+  render();
+}
+function render(){
+  gamesEl.replaceChildren();
+  const q=document.getElementById('search').value.trim().toLowerCase();
+  const visible=games.filter(g=>(g.name||'').toLowerCase().includes(q));
+  visible.forEach(g=>{
+    const card=document.createElement('article');card.className='card';
+    const thumb=document.createElement('div');thumb.className='thumb';
+    const image=safeUrl(g.image||'');
+    if(image){
+      const img=document.createElement('img');img.src=image;img.alt='';
+      img.onerror=()=>{img.remove();thumb.textContent=(g.name||'').slice(0,2).toUpperCase()};
+      thumb.append(img);
+    }else thumb.textContent=(g.name||'').slice(0,2).toUpperCase();
+    const row=document.createElement('div');row.className='row';
+    const a=document.createElement('a');a.className='name';a.textContent=g.name;
+    a.href=safeUrl(g.url)||'#';a.target='_blank';a.rel='noopener noreferrer';
+    row.append(a);card.append(thumb,row);
+    if(session){
+      const tools=document.createElement('div');tools.className='admin';
+      const edit=document.createElement('button');edit.className='secondary';edit.textContent='Edit';
+      edit.onclick=()=>openGame(g);
+      const del=document.createElement('button');del.className='secondary';del.textContent='Delete';
+      del.onclick=async()=>{
+        if(!confirm('Delete '+g.name+'?'))return;
+        const {error}=await db.from('games').delete().eq('id',g.id);
+        if(error)alert('Could not delete. Check your owner permissions.');
+        else await refresh();
+      };
+      tools.append(edit,del);card.append(tools);
+    }
+    gamesEl.append(card);
+  });
+  emptyEl.hidden=visible.length>0;
+  if(!visible.length)emptyEl.textContent=games.length?'No games found.':'No games added yet.';
+}
+loginButton.onclick=()=>{
+  if(session){status('You are signed in as the owner.');return}
+  document.getElementById('loginMessage').textContent='Sign in with your Supabase owner account.';
+  loginDialog.showModal();
+};
+document.getElementById('cancelLogin').onclick=()=>loginDialog.close();
+document.getElementById('loginForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(!db)return;
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('password').value;
+  const {error}=await db.auth.signInWithPassword({email,password});
+  if(error){document.getElementById('loginMessage').textContent='Sign-in failed. Check your email and password.';return}
+  loginDialog.close();e.target.reset();await refresh();
+};
+document.getElementById('logoutButton').onclick=async()=>{
+  if(db)await db.auth.signOut();
+};
+function openGame(g=null){
+  editingId=g?g.id:null;
+  document.getElementById('gameHeading').textContent=g?'Edit Game':'Add Game';
+  document.getElementById('gameName').value=g?g.name:'';
+  document.getElementById('gameUrl').value=g?g.url:'';
+  document.getElementById('gameImage').value=g?g.image||'':'';
+  gameDialog.showModal();
+}
+document.getElementById('addButton').onclick=()=>openGame();
+document.getElementById('cancelGame').onclick=()=>gameDialog.close();
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('gameForm').onsubmit=async e=>{
+  e.preventDefault();
+  if(!db||!session)return;
+  const name=document.getElementById('gameName').value.trim();
+  const url=safeUrl(document.getElementById('gameUrl').value.trim());
+  const rawImage=document.getElementById('gameImage').value.trim();
+  const image=rawImage?safeUrl(rawImage):null;
+  if(!name||!url||(rawImage&&!image)){alert('Enter a name and valid web URLs.');return}
+  const record={name,url,image};
+  const result=editingId
+    ?await db.from('games').update(record).eq('id',editingId)
+    :await db.from('games').insert(record);
+  if(result.error){alert('Save failed. Check your owner permissions.');return}
+  gameDialog.close();e.target.reset();editingId=null;await refresh();
+};
+init();
+</script>
+</body>
+</html>
