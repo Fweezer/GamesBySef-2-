@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101020">
+<title>SEFGames — Play & Share Games</title>
+<style>
+:root{--bg:#0c0d18;--panel:#15172a;--panel2:#1c1f36;--text:#f5f6ff;--muted:#a5a9c7;--purple:#9b6dff;--cyan:#55e6d0;--pink:#ff70b8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 80% -10%,#28204d 0,transparent 35%),var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}
+header{position:sticky;top:0;z-index:10;background:#0c0d18eF;backdrop-filter:blur(16px);border-bottom:1px solid #ffffff12}
+.nav{max-width:1200px;margin:auto;padding:14px 22px;display:flex;align-items:center;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;font-size:1.2rem;white-space:nowrap}.logo-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--purple),var(--pink));box-shadow:0 5px 25px #9b6dff55}
+.navlinks{display:flex;gap:18px;margin-left:18px}.navlinks a{color:var(--muted);text-decoration:none;font-weight:650}.navlinks a:hover{color:white}
+.nav-spacer{flex:1}.search{width:min(280px,28vw);background:#ffffff0c;border:1px solid #ffffff1b;color:white;border-radius:12px;padding:10px 13px;outline:none}.search:focus{border-color:var(--purple)}
+.btn{padding:10px 16px;border-radius:12px;font-weight:800;transition:.18s transform,.18s filter}.btn:hover{transform:translateY(-2px);filter:brightness(1.1)}.btn-primary{background:linear-gradient(135deg,var(--purple),#7650ec);color:white;box-shadow:0 6px 20px #9b6dff30}.btn-soft{background:#ffffff12;color:white;border:1px solid #ffffff17}
+main{max-width:1200px;margin:auto;padding:30px 22px 70px}
+.hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;padding:clamp(26px,5vw,60px);border:1px solid #ffffff18;border-radius:28px;background:linear-gradient(120deg,#211d43,#15182d 65%,#142c3a);min-height:300px}
+.hero:after{content:"";position:absolute;width:330px;height:330px;border-radius:50%;right:4%;top:-40%;background:radial-gradient(circle,#9b6dff66,transparent 68%);pointer-events:none}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;color:var(--cyan);font-size:.78rem;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+h1{font-size:clamp(2.1rem,5vw,4rem);line-height:1.04;letter-spacing:-.045em;margin:14px 0}.gradient{background:linear-gradient(90deg,#fff,#cbb7ff 55%,#76f1df);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:#c2c4df;max-width:500px;margin:0 0 23px}.hero-actions{display:flex;gap:10px;flex-wrap:wrap}
+.hero-art{position:relative;min-height:210px;display:grid;place-items:center}.orb{width:min(280px,75%);aspect-ratio:1;border-radius:30%;transform:rotate(-10deg);background:linear-gradient(145deg,#8e68ff,#ed70bd 55%,#ffc86c);box-shadow:0 25px 80px #a46bff45;display:grid;place-items:center;font-size:clamp(5rem,12vw,8rem);border:1px solid #ffffff65}.floating{position:absolute;border:1px solid #ffffff2c;background:#101326c9;backdrop-filter:blur(10px);border-radius:14px;padding:10px 13px;font-weight:800;box-shadow:0 12px 30px #0003}.float-one{left:0;top:20%}.float-two{right:0;bottom:14%}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:38px 0 17px}.section-head h2{margin:0;font-size:1.55rem;letter-spacing:-.03em}.section-head p{margin:3px 0 0;color:var(--muted);font-size:.92rem}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.chip{padding:8px 13px;border-radius:999px;color:#c7c9e2;background:#ffffff0a;border:1px solid #ffffff16;font-weight:750}.chip.active,.chip:hover{background:#9b6dff28;border-color:#9b6dff99;color:white}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px}.game-card{overflow:hidden;background:linear-gradient(180deg,#191b30,#121421);border:1px solid #ffffff13;border-radius:18px;transition:transform .2s,border-color .2s;min-width:0}.game-card:hover{transform:translateY(-5px);border-color:#9b6dff88}.cover{height:145px;display:grid;place-items:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#47358b,#cf5f9e)}.cover:before,.cover:after{content:"";position:absolute;border:1px solid #ffffff30;border-radius:28px;transform:rotate(30deg)}.cover:before{width:130px;height:130px;left:-25px;top:65px}.cover:after{width:100px;height:100px;right:-12px;top:-20px}.cover-icon{font-size:4rem;filter:drop-shadow(0 8px 10px #0003);z-index:1}.game-card:nth-child(4n+2) .cover{background:linear-gradient(135deg,#166d81,#5edbb9)}.game-card:nth-child(4n+3) .cover{background:linear-gradient(135deg,#a04c55,#f3ad61)}.game-card:nth-child(4n+4) .cover{background:linear-gradient(135deg,#343c85,#688bff)}.cover-tag{position:absolute;left:10px;top:10px;background:#090b19b8;border:1px solid #ffffff30;border-radius:7px;padding:3px 7px;font-size:.68rem;font-weight:900;z-index:2}.card-info{padding:13px}.card-title{font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-meta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.8rem;margin:5px 0 12px}.play-btn{width:100%;background:#ffffff0d;border:1px solid #ffffff15;color:white;padding:8px;border-radius:10px;font-weight:800}.play-btn:hover{background:#9b6dff30;border-color:#9b6dff66}.empty{grid-column:1/-1;text-align:center;padding:45px 20px;border:1px dashed #ffffff2c;border-radius:18px;color:var(--muted)}
+.callout{margin-top:45px;padding:23px;border-radius:20px;border:1px solid #ffffff16;background:linear-gradient(110deg,#1d1a37,#14272d);display:flex;align-items:center;justify-content:space-between;gap:20px}.callout h3{margin:0 0 5px}.callout p{margin:0;color:var(--muted)}
+footer{border-top:1px solid #ffffff12;padding:25px 22px;color:var(--muted);text-align:center;font-size:.86rem}
+dialog{width:min(650px,calc(100% - 28px));max-height:90vh;overflow:auto;background:#15172a;color:var(--text);border:1px solid #ffffff2b;border-radius:20px;padding:0;box-shadow:0 30px 100px #000a}dialog::backdrop{background:#050610c9;backdrop-filter:blur(5px)}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:19px 22px;border-bottom:1px solid #ffffff15}.modal-head h2{margin:0;font-size:1.25rem}.x{background:#ffffff12;color:white;border-radius:10px;padding:5px 10px}.modal-body{padding:22px}.field{display:grid;gap:6px;margin-bottom:15px}.field label{font-weight:750;font-size:.9rem}.field input,.field select,.field textarea{width:100%;background:#0e1020;border:1px solid #ffffff22;color:white;border-radius:10px;padding:11px 12px;outline:none}.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--purple)}.field small,.help{color:var(--muted);font-size:.82rem}.form-row{display:grid;grid-template-columns:1fr 1fr;gap:13px}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.player-dialog{width:min(1000px,calc(100% - 20px));height:min(760px,94vh)}.player-wrap{padding:15px}.player-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 5px 12px}.player-top h2{font-size:1.1rem;margin:0}.game-frame{width:100%;height:min(65vh,600px);border:0;border-radius:12px;background:#090a12}.player-note{color:var(--muted);font-size:.8rem;padding:8px 5px 0}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:30;background:#222641;border:1px solid #ffffff30;padding:11px 16px;border-radius:12px;box-shadow:0 10px 35px #0008;display:none}.toast.show{display:block}
+@media(max-width:900px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero{grid-template-columns:1fr .65fr}.navlinks{display:none}}
+@media(max-width:650px){.nav{padding:12px 14px;gap:10px}.search{width:100%;max-width:180px}.nav .btn{padding:9px 10px;font-size:.85rem}.logo{font-size:1rem}.logo-mark{width:32px;height:32px}main{padding:20px 14px 50px}.hero{grid-template-columns:1fr;padding:27px 22px}.hero-art{min-height:150px}.orb{width:145px;font-size:4.5rem}.float-one{left:10%;top:5%}.float-two{right:7%;bottom:0}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.cover{height:120px}.cover-icon{font-size:3.3rem}.section-head{margin-top:30px}.callout{align-items:flex-start;flex-direction:column}.form-row{grid-template-columns:1fr}.player-dialog{height:95vh}.game-frame{height:62vh}}
+</style>
+</head>
+<body>
+<header><nav class="nav">
+  <a class="logo" href="#" style="color:inherit;text-decoration:none"><span class="logo-mark">▶</span><span>SEF<span style="color:var(--cyan)">GAMES</span></span></a>
+  <div class="navlinks"><a href="#games">Games</a><a href="#publish">Publish a game</a></div>
+  <div class="nav-spacer"></div>
+  <input class="search" id="search" type="search" placeholder="⌕  Search games..." aria-label="Search games">
+  <button class="btn btn-primary" id="openAdd">＋ Add game</button>
+</nav></header>
+<main>
+  <section class="hero">
+    <div>
+      <span class="eyebrow">✦ YOUR GAMES. YOUR ARCADE.</span>
+      <h1>Press play.<br><span class="gradient">Make some chaos.</span></h1>
+      <p>Your own mini game portal. Collect the games you make, launch them in one click, and build your very own arcade.</p>
+      <div class="hero-actions"><a href="#games" class="btn btn-primary" style="text-decoration:none">Explore games ↘</a><button class="btn btn-soft" id="heroAdd">＋ Add your game</button></div>
+    </div>
+    <div class="hero-art"><div class="orb">🎮</div><div class="floating float-one">⚡ Instant play</div><div class="floating float-two">🕹️ Made by you</div></div>
+  </section>
+
+  <section id="games">
+    <div class="section-head"><div><h2>Game library</h2><p>Find your next favourite game.</p></div><span id="gameCount" class="help"></span></div>
+    <div class="chips" id="filters">
+      <button class="chip active" data-filter="All">✨ All games</button>
+      <button class="chip" data-filter="Action">⚔️ Action</button>
+      <button class="chip" data-filter="Puzzle">🧩 Puzzle</button>
+      <button class="chip" data-filter="Arcade">👾 Arcade</button>
+      <button class="chip" data-filter="Racing">🏁 Racing</button>
+      <button class="chip" data-filter="Other">🎲 Other</button>
+    </div>
+    <div class="grid" id="gameGrid"></div>
+  </section>
+
+  <section class="callout" id="publish"><div><h3>Got a game you made?</h3><p>Add its playable URL or embed link and give it a spot in your arcade.</p></div><button class="btn btn-primary" id="calloutAdd">Publish a game ↗</button></section>
+  <p class="help" style="margin-top:18px">Tip: games you add are saved in this browser on this device. To share the site publicly, you'll need to host it online.</p>
+</main>
+<footer>SEFGAMES © 2026 · A little home for games made with imagination.</footer>
+
+<dialog id="addDialog">
+  <div class="modal-head"><h2>🎮 Add a game</h2><button class="x" id="closeAdd" aria-label="Close">✕</button></div>
+  <form class="modal-body" id="addForm">
+    <div class="field"><label for="gameName">Game name *</label><input id="gameName" required maxlength="60" placeholder="e.g. Neon Runner"></div>
+    <div class="form-row">
+      <div class="field"><label for="gameCategory">Category</label><select id="gameCategory"><option>Arcade</option><option>Action</option><option>Puzzle</option><option>Racing</option><option>Other</option></select></div>
+      <div class="field"><label for="gameIcon">Emoji / icon</label><input id="gameIcon" maxlength="4" value="🎮" placeholder="🎮"></div>
+    </div>
+    <div class="field"><label for="gameUrl">Playable game URL *</label><input id="gameUrl" required type="url" placeholder="https://your-game-site.example"><small>Use a public web link to your game. Some websites block being embedded; those may need to open in a new tab.</small></div>
+    <div class="field"><label for="gameDescription">Short description</label><textarea id="gameDescription" rows="2" maxlength="140" placeholder="What do you do in this game?"></textarea></div>
+    <div class="field"><label><input id="gameFeatured" type="checkbox" style="width:auto;accent-color:var(--purple)"> Mark as featured</label></div>
+    <p class="help">For HTML games, upload the game files to a web host first, then paste the public URL here. Only add games you made or have permission to share.</p>
+    <div class="modal-actions"><button type="button" class="btn btn-soft" id="cancelAdd">Cancel</button><button type="submit" class="btn btn-primary">Add to arcade ✨</button></div>
+  </form>
+</dialog>
+
+<dialog id="playerDialog" class="player-dialog">
+  <div class="player-wrap"><div class="player-top"><h2 id="playerTitle">Now playing</h2><div style="display:flex;gap:8px"><button class="btn btn-soft" id="openNewTab">↗ Open tab</button><button class="x" id="closePlayer">✕</button></div></div><iframe id="gameFrame" class="game-frame" title="Game player" allow="fullscreen; gamepad; autoplay" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe><div class="player-note">If the game does not load here, use “Open tab” — some sites prevent embedding.</div></div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+<script>
+const starterGames = [
+ {id:"starter-neon",name:"Neon Runner",category:"Arcade",icon:"🏃",description:"Dash through a glowing neon world.",url:"https://example.com",featured:true,starter:true},
+ {id:"starter-puzzle",name:"Brain Blocks",category:"Puzzle",icon:"🧩",description:"A little puzzle placeholder for your collection.",url:"https://example.com",featured:false,starter:true},
+ {id:"starter-racer",name:"Turbo Drift",category:"Racing",icon:"🏎️",description:"Hit the track and chase the best time.",url:"https://example.com",featured:false,starter:true},
+ {id:"starter-action",name:"Pixel Quest",category:"Action",icon:"⚔️",description:"Explore, jump and discover a pixel world.",url:"https://example.com",featured:false,starter:true}
+];
+const STORAGE_KEY = "arcadeHubGames_v1";
+let games = loadGames();
+let activeFilter = "All";
+let selectedGame = null;
+function loadGames(){try{const s=localStorage.getItem(STORAGE_KEY);return s?JSON.parse(s):starterGames}catch(e){return starterGames}}
+function saveGames(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(games))}catch(e){showToast("Could not save in this browser.")}}
+const grid=document.getElementById("gameGrid"), search=document.getElementById("search");
+const icons={Action:"⚔️",Puzzle:"🧩",Arcade:"👾",Racing:"🏁",Other:"🎲"};
+function safeUrl(value){try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)?u.href:null}catch{return null}}
+function render(){
+ const q=search.value.trim().toLowerCase();
+ const visible=games.filter(g=>(activeFilter==="All"||g.category===activeFilter)&&`${g.name} ${g.description||""} ${g.category}`.toLowerCase().includes(q));
+ document.getElementById("gameCount").textContent=`${visible.length} game${visible.length===1?"":"s"}`;
+ grid.innerHTML="";
+ if(!visible.length){grid.innerHTML='<div class="empty"><div style="font-size:2rem;margin-bottom:8px">🔎</div><strong>No games found</strong><br><span>Try another search or add a new game.</span></div>';return}
+ visible.forEach((g,i)=>{
+  const card=document.createElement("article");card.className="game-card";
+  const cover=document.createElement("div");cover.className="cover";
+  const tag=document.createElement("span");tag.className="cover-tag";tag.textContent=g.featured?"★ FEATURED":g.category.toUpperCase();cover.append(tag);
+  const em=document.createElement("span");em.className="cover-icon";em.textContent=g.icon||icons[g.category]||"🎮";cover.append(em);
+  const info=document.createElement("div");info.className="card-info";
+  const title=document.createElement("div");title.className="card-title";title.textContent=g.name;
+  const desc=document.createElement("div");desc.className="card-meta";desc.innerHTML="<span></span><span>▶ Play</span>";desc.firstChild.textContent=g.category;
+  const play=document.createElement("button");play.className="play-btn";play.textContent="Play game →";play.addEventListener("click",()=>playGame(g));
+  info.append(title,desc,play);
+  if(!g.starter){const remove=document.createElement("button");remove.textContent="Remove";remove.style.cssText="background:none;color:#a5a9c7;font-size:.75rem;margin-top:9px;padding:2px";remove.addEventListener("click",()=>{if(confirm(`Remove "${g.name}" from your arcade?`)){games=games.filter(x=>x.id!==g.id);saveGames();render();showToast("Game removed.")}});info.append(remove)}
+  card.append(cover,info);grid.append(card);
+ });
+}
+function playGame(g){
+ selectedGame=g;document.getElementById("playerTitle").textContent=g.name;
+ const frame=document.getElementById("gameFrame");frame.src="";
+ const url=safeUrl(g.url);
+ if(!url){showToast("That game URL is not valid.");return}
+ frame.src=url;document.getElementById("playerDialog").showModal();
+}
+function openAdd(){document.getElementById("addDialog").showModal()}
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove("show"),2600)}
+["openAdd","heroAdd","calloutAdd"].forEach(id=>document.getElementById(id).addEventListener("click",openAdd));
+["closeAdd","cancelAdd"].forEach(id=>document.getElementById(id).addEventListener("click",()=>document.getElementById("addDialog").close()));
+document.getElementById("closePlayer").addEventListener("click",()=>{document.getElementById("playerDialog").close();document.getElementById("gameFrame").src=""});
+document.getElementById("openNewTab").addEventListener("click",()=>{if(selectedGame)window.open(selectedGame.url,"_blank","noopener,noreferrer")});
+document.getElementById("addForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const name=document.getElementById("gameName").value.trim(), url=safeUrl(document.getElementById("gameUrl").value.trim());
+ if(!url){showToast("Please enter a valid http or https game URL.");return}
+ games.unshift({id:"game-"+Date.now(),name,category:document.getElementById("gameCategory").value,icon:document.getElementById("gameIcon").value.trim()||"🎮",description:document.getElementById("gameDescription").value.trim(),url,featured:document.getElementById("gameFeatured").checked,starter:false});
+ saveGames();document.getElementById("addForm").reset();document.getElementById("gameIcon").value="🎮";document.getElementById("addDialog").close();activeFilter="All";document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c.dataset.filter==="All"));search.value="";render();showToast("Game added to your arcade!");document.getElementById("games").scrollIntoView({behavior:"smooth"});
+});
+document.querySelectorAll(".chip").forEach(chip=>chip.addEventListener("click",()=>{activeFilter=chip.dataset.filter;document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c===chip));render()}));
+search.addEventListener("input",render);
+render();
+</script>
+</body>
+</html>
