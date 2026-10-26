@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Please Don’t Let Them In 3D</title>
+<style>
+:root{--bg:#0b0807;--ink:#e8dccb;--mut:#8f8070;--acc:#c0392b;--card:#171211cc;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0807;--ink:#e8dccb}}
+:root[data-theme="dark"]{--bg:#0b0807;--ink:#e8dccb}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:Georgia,serif;overflow:hidden;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,transparent 30%,#000 78%)}
+#top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 0;display:flex;justify-content:space-between;color:var(--mut);font-size:14px;pointer-events:none}
+#hud{position:fixed;left:0;right:0;bottom:0;padding:12px 14px calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;justify-content:center}
+.box{background:var(--card);border:1px solid #2c2220;border-radius:6px;padding:14px;max-width:560px;width:100%;backdrop-filter:blur(4px)}
+p{margin:6px 0;line-height:1.45}.say{font-style:italic}.echo{opacity:.45;font-style:italic}.mut{color:var(--mut);font-size:14px}
+button{font:inherit;color:var(--ink);background:#171211;border:1px solid var(--mut);border-radius:4px;padding:10px 12px;margin:5px 5px 0 0;cursor:pointer}
+button:hover{border-color:var(--acc)}button.d{background:var(--acc);border-color:var(--acc);color:#fff}
+h1{margin:0 0 6px;font-size:26px}.hint{display:none;color:#f0c9c2}.away .atd{display:none}.away .hint{display:block}#mute{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);padding:6px 10px;z-index:5}#peep{display:none;position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent min(36vh,36vw),#000 min(38vh,38vw))}#cross{position:fixed;left:50%;top:50%;width:4px;height:4px;margin:-2px;border-radius:50%;background:#e8dccb88;pointer-events:none}body.peep #peep{display:block}body.peep #vig,body.peep #cross{display:none}#bub{display:none;position:fixed;z-index:3;max-width:230px;background:#e8dccbee;color:#1a1210;border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.35;pointer-events:none}body.peep #bub.on{display:block}body.peep .sub{display:none}#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:4}#hud{z-index:6}
+</style></head><body>
+<canvas id="c"></canvas><div id="vig"></div><div id="peep"></div><div id="cross"></div><div id="bub"></div><div id="fade"></div><div id="top"></div><button id="mute" onclick="toggleVoice()">🔊 (M)</button><div id="hud"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const SIGNS={blink:"never blink",grin:"smile too wide",echo:"have voices that echo late",shadow:"cast no shadow",breath:"show no breath in the cold",tilt:"hold their head at an odd angle",arms:"have arms that hang too low",still:"stand eerily still, never swaying",pale:"look faintly gray-green",eyes:"have eyes a little too large"};
+const NIGHT_SIGNS=[["blink","shadow","pale"],["blink","shadow","echo","eyes"],["grin","shadow","echo","tilt"],["grin","echo","breath","still","arms"],["blink","grin","echo","shadow","breath","tilt","still","arms"]];
+const PLEAS=["Please, it’s freezing out here. Let me in.","I’ve been walking all night. Open the door.","They’re right behind me. Please hurry!","It’s me, your neighbor. You know me.","I only need somewhere to sleep until morning."];
+const NAMES=["Mara","Old Tom","Jessa","Pastor Hale","Dee","Whitaker","Ines","Ray"];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+// --- 3D scene
+const cv=document.getElementById("c");
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.shadowMap.enabled=true;R.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x070504);scene.fog=new THREE.Fog(0x070504,2,13);
+const cam=new THREE.PerspectiveCamera(58,1,.1,40);cam.position.set(0,1.6,0);cam.rotation.order="YXZ";
+function size(){R.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}addEventListener("resize",size);size();
+scene.add(new THREE.AmbientLight(0x221a22,.6));
+const lamp=new THREE.SpotLight(0xffd9a0,1.6,14,.7,.5);lamp.position.set(1.2,3.1,-1.4);lamp.target.position.set(0,0,-3);lamp.castShadow=true;lamp.shadow.mapSize.set(1024,1024);scene.add(lamp,lamp.target);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x1c2a1e,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+for(let i=0;i<14;i++){const t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.2,5,6),new THREE.MeshStandardMaterial({color:0x120e0c}));t.position.set((Math.random()-.5)*16,2.5,-6-Math.random()*8);scene.add(t)}
+// veranda
+const deckM=new THREE.MeshStandardMaterial({color:0x4a3322,roughness:.9}),postM=new THREE.MeshStandardMaterial({color:0x6b5a4a,roughness:.8}),roofM=new THREE.MeshStandardMaterial({color:0x1a1412,roughness:1});
+const vb=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);b.receiveShadow=true;scene.add(b);return b};
+vb(7.4,.2,4.2,0,.1,-2.8,deckM);vb(2,.1,.5,0,.05,-5.15,deckM);vb(1.6,.02,8,0,.01,-9.4,new THREE.MeshStandardMaterial({color:0x4a4036,roughness:1}));
+vb(7.9,.15,4.6,0,3.55,-2.7,roofM);
+[-3.5,3.5].forEach(x=>[-4.8,-.9].forEach(z=>{const p=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,3.3,8),postM);p.position.set(x,1.85,z);scene.add(p)}));
+[-3.5,3.5].forEach(x=>{vb(.1,.08,3.9,x,1.1,-2.85,postM);for(let z=-1.3;z>-4.7;z-=.4)vb(.05,.8,.05,x,.6,z,postM);const s=x<0?-1:1;vb(2.5,.08,.1,s*2.25,1.1,-4.8,postM);for(let i=0;i<6;i++)vb(.05,.8,.05,s*(1.2+i*.4),.6,-4.8,postM)});
+vb(1.4,.02,.8,0,.21,-1.4,new THREE.MeshStandardMaterial({color:0x3a1a1a,roughness:1}));
+vb(.6,.08,.6,-2.6,.55,-2.2,postM);vb(.6,.8,.06,-2.6,.95,-2.5,postM);vb(.06,.55,.6,-2.9,.3,-2.2,postM);vb(.06,.55,.6,-2.3,.3,-2.2,postM);
+const lan=new THREE.Mesh(new THREE.BoxGeometry(.18,.28,.18),new THREE.MeshBasicMaterial({color:0xffc66b}));lan.position.set(1.2,3.15,-1.4);scene.add(lan);vb(.02,.35,.02,1.2,3.4,-1.4,postM);
+// frame of the door window in foreground
+const fm=new THREE.MeshStandardMaterial({color:0x0d0807});
+[[-1.3,1.6,-.6,.5,4,.2],[1.3,1.6,-.6,.5,4,.2],[0,3.3,-.6,3.2,.5,.2],[0,.25,-.6,3.2,.6,.2]].forEach(a=>{const m=new THREE.Mesh(new THREE.BoxGeometry(a[3],a[4],a[5]),fm);m.position.set(a[0],a[1],a[2]);scene.add(m)});
+const wood=new THREE.MeshStandardMaterial({color:0x3a2a1e,roughness:.9}),wallM=new THREE.MeshStandardMaterial({color:0x2b2220,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x111111});
+const box=(w,h,d,x,y,z,m)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||wood);b.position.set(x,y,z);scene.add(b);return b};
+const tex=(w,h,fn,rx,ry)=>{const c=document.createElement('canvas');c.width=w;c.height=h;fn(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(rx,ry);return t};
+const M=(c,r)=>new THREE.MeshStandardMaterial({color:c,roughness:r===undefined?.85:r});
+const wd=M(0x5a3a22),wd2=M(0x3a2516),gold=M(0xb08d57,.4),cream=M(0xcbbfa5),stone=M(0x5b564f,1),red=M(0x6b2a2a),red2=M(0x7b3434),glow=new THREE.MeshBasicMaterial({color:0xffd9a0}),flameM=new THREE.MeshBasicMaterial({color:0xff7a1a});
+const floorT=tex(256,256,(g,w,h)=>{g.fillStyle='#3b281a';g.fillRect(0,0,w,h);for(let i=0;i<8;i++){g.fillStyle='hsl(25,'+(30+Math.random()*15)+'%,'+(16+Math.random()*10)+'%)';g.fillRect(i*32+1,0,30,h)}g.fillStyle='#150d08';for(let i=0;i<=8;i++)g.fillRect(i*32,0,2,h);for(let i=0;i<10;i++)g.fillRect(Math.floor(Math.random()*8)*32,Math.random()*h,32,2)},2.2,2.2);
+const flr=new THREE.Mesh(new THREE.PlaneGeometry(8,7.8),new THREE.MeshStandardMaterial({map:floorT,roughness:.9}));flr.rotation.x=-Math.PI/2;flr.position.set(0,.02,3.3);scene.add(flr);
+const papT=tex(128,128,(g,w,h)=>{g.fillStyle='#5a4340';g.fillRect(0,0,w,h);g.fillStyle='#68504b';for(let x=0;x<w;x+=32)g.fillRect(x,0,16,h);g.fillStyle='#7a5a48';for(let x=0;x<w;x+=32)for(let y=8;y<h;y+=32){g.beginPath();g.arc(x+8,y+8,3,0,7);g.fill()}},1,1);
+const sideT=tex(64,64,(g,w,h)=>{g.fillStyle='#55483a';g.fillRect(0,0,w,h);g.fillStyle='#2c231b';for(let y=0;y<h;y+=16)g.fillRect(0,y,w,2)},3,2);
+const pap=(w,h)=>{const t=papT.clone();t.repeat.set(w/1.6,h/1.6);t.needsUpdate=true;return new THREE.MeshStandardMaterial({map:t,roughness:1})};
+const sid=new THREE.MeshStandardMaterial({map:sideT,roughness:1}),edge=M(0x241a14,1),plaster=M(0x3a302b,1);
+const wallBox=(w,h,d,x,y,z,mats)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats);b.position.set(x,y,z);scene.add(b)};
+[-2.775,2.775].forEach(x=>wallBox(2.45,3.6,.2,x,1.8,-.6,[edge,edge,edge,edge,pap(2.45,3.6),sid]));
+wallBox(.2,3.6,7.8,-4,1.8,3.3,[pap(7.8,3.6),edge,edge,edge,edge,edge]);wallBox(.2,3.6,7.8,4,1.8,3.3,[edge,pap(7.8,3.6),edge,edge,edge,edge]);wallBox(8.2,3.6,.2,0,1.8,7.2,[edge,edge,edge,edge,edge,pap(8.2,3.6)]);wallBox(8.2,.2,7.8,0,3.6,3.3,[edge,edge,edge,plaster,edge,edge]);
+const cyl=(a,b,h,x,y,z,m,s)=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,s||10),m);c.position.set(x,y,z);scene.add(c);return c};
+// dado panelling, rails, baseboards, beams, ceiling lamp
+[-3.88,3.88].forEach(x=>{box(.04,1,7.8,x,.5,3.3,wd2);box(.07,.07,7.8,x,1.03,3.3,wd)});box(8,1,.04,0,.5,7.08,wd2);box(8,.07,.07,0,1.03,7.08,wd);[-2.75,2.75].forEach(x=>{box(2.4,1,.04,x,.5,-.48,wd2);box(2.4,.07,.07,x,1.03,-.48,wd)});
+[1,3.3,5.6].forEach(z=>box(8,.18,.25,0,3.41,z,wd2));cyl(.01,.01,.5,0,3.25,3.3,dark,6);cyl(.12,.26,.22,0,2.95,3.3,glow,14);
+// rug
+const rugT=tex(128,128,(g,w,h)=>{g.fillStyle='#6b2630';g.fillRect(0,0,w,h);g.strokeStyle='#d9c9a0';g.lineWidth=6;g.strokeRect(10,10,w-20,h-20);g.strokeStyle='#c9a45a';g.lineWidth=3;g.strokeRect(26,26,w-52,h-52);g.fillStyle='#d9c9a0';g.beginPath();g.moveTo(w/2,36);g.lineTo(w-36,h/2);g.lineTo(w/2,h-36);g.lineTo(36,h/2);g.fill()},1,1);
+const rug=new THREE.Mesh(new THREE.PlaneGeometry(3.4,2.6),new THREE.MeshStandardMaterial({map:rugT,roughness:1}));rug.rotation.x=-Math.PI/2;rug.position.set(0,.035,5);scene.add(rug);
+// sofa and coffee table
+box(2.2,.2,.9,0,.1,4.9,wd2);box(2.2,.4,.9,0,.4,4.9,red);box(2.2,.8,.22,0,.8,4.56,red);[-1.1,1.1].forEach(x=>box(.22,.65,.9,x,.48,4.9,red));[-.5,.5].forEach(x=>box(.98,.14,.8,x,.67,4.95,red2));
+box(1.1,.06,.55,0,.45,5.95,wd);[[-.5,-.22],[.5,-.22],[-.5,.22],[.5,.22]].forEach(a=>box(.06,.42,.06,a[0],.21,5.95+a[1],wd2));cyl(.035,.035,.18,.3,.57,5.95,cream,8);const cn=new THREE.PointLight(0xffb36a,.5,5);cn.position.set(.3,.8,5.95);scene.add(cn);
+// fireplace, chimney, mantel
+[-.72,.72].forEach(x=>box(.35,1.3,.55,x,.65,6.85,stone));box(1.8,.25,.55,0,1.42,6.85,stone);box(1.1,1.1,.1,0,.55,7.03,dark);box(1.5,2.1,.45,0,2.55,6.95,stone);box(2.1,.1,.65,0,1.6,6.8,wd);box(.85,.6,.04,0,.5,6.96,new THREE.MeshBasicMaterial({color:0x331100}));
+const lg=cyl(.07,.07,.8,0,.1,6.85,wd2,8);lg.rotation.z=Math.PI/2;[[-.15,.3,.2],[.12,.38,.28],[0,.46,.34]].forEach(a=>{const c=new THREE.Mesh(new THREE.ConeGeometry(a[2]*.5,a[2]*1.5,8),flameM);c.position.set(a[0],a[1],6.88);scene.add(c)});[-.7,.7].forEach(x=>cyl(.03,.03,.2,x,1.75,6.8,cream,8));
+// pictures
+const picT=(c1,c2,s)=>tex(128,96,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,c1);gr.addColorStop(1,c2);g.fillStyle=gr;g.fillRect(0,0,w,h);g.fillStyle='#12100e';g.beginPath();g.moveTo(0,h);for(let x=0;x<=w;x+=8)g.lineTo(x,h*.6+Math.sin(x*.08+s)*14);g.lineTo(w,h);g.fill()},1,1);
+const pic=(x,y,z,w,h,ry,c1,c2,s)=>{const gp=new THREE.Group();gp.position.set(x,y,z);gp.rotation.y=ry;gp.add(new THREE.Mesh(new THREE.BoxGeometry(w+.12,h+.12,.05),wd2));const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:picT(c1,c2,s),color:0xaaaaaa}));pl.position.z=.03;gp.add(pl);scene.add(gp)};
+pic(0,2.55,6.74,.9,.65,Math.PI,'#2a3b55','#7a8a9a',1);pic(-3.87,2.1,1.2,.8,.6,Math.PI/2,'#5a3a2a','#b0906a',2);pic(-3.87,2.1,2.3,.5,.7,Math.PI/2,'#2a4a3a','#8aaa8a',3);pic(3.87,2.1,4.9,.8,.6,-Math.PI/2,'#3a2a4a','#9a8aaa',4);
+// windows: curtained (left) and boarded (right)
+const wnd=(x,z,s,boards)=>{const gp=new THREE.Group();gp.position.set(x,1.9,z);gp.rotation.y=s>0?Math.PI/2:-Math.PI/2;const nt=new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.3),new THREE.MeshBasicMaterial({color:0x172236}));nt.position.z=.01;gp.add(nt);[[0,.7,1.3,.1],[0,-.7,1.3,.1],[-.6,0,.1,1.5],[.6,0,.1,1.5],[0,0,.04,1.3],[0,0,1.1,.04]].forEach(a=>{const m=new THREE.Mesh(new THREE.BoxGeometry(a[2],a[3],.06),wd);m.position.set(a[0],a[1],.04);gp.add(m)});if(boards)[-.35,0,.35].forEach((y,i)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.4,.2,.05),wd2);b.position.set(0,y,.1);b.rotation.z=(i-1)*.08;gp.add(b)});else[-1,1].forEach(k=>{const c=new THREE.Mesh(new THREE.BoxGeometry(.3,1.7,.06),red);c.position.set(k*.68,-.1,.08);gp.add(c)});scene.add(gp)};
+wnd(-3.88,3.4,1,false);wnd(3.88,3.2,-1,true);
+// bookshelf
+const bookM=[0x6b2a2a,0x2f4a3a,0x3a3a5a,0x6a5a2a,0x4a3a30].map(c=>M(c));box(.06,2.4,1.7,3.88,1.2,1.4,wd2);[.55,2.25].forEach(z=>box(.4,2.4,.06,3.7,1.2,z,wd));[.1,.7,1.3,1.9,2.4].forEach(y=>box(.4,.05,1.7,3.7,y,1.4,wd));[.1,.7,1.3,1.9].forEach(y=>{for(let z=.68;z<2.15;z+=.1){const h=.28+Math.random()*.2;box(.26,h,.07,3.72,y+.025+h/2,z,pick(bookM))}});
+// bed, nightstand and lamp
+box(1.7,.28,2.4,-3,.2,5.8,wd2);box(1.6,.22,2.3,-3,.45,5.8,cream);box(1.64,.1,1.4,-3,.57,5.3,M(0x35514a));box(1.66,.14,.3,-3,.6,4.7,M(0x2a4038));box(1.7,.9,.1,-3,.75,6.98,wd);[-3.4,-2.6].forEach(x=>box(.6,.12,.4,x,.62,6.6,M(0xe0d8c4)));
+box(.5,.5,.5,-1.85,.25,6.75,wd);cyl(.08,.1,.1,-1.85,.55,6.75,gold);cyl(.1,.17,.24,-1.85,.78,6.75,glow,12);const nl=new THREE.PointLight(0xffb060,.7,6);nl.position.set(-1.85,.95,6.6);scene.add(nl);
+// table, radio, chair
+box(1.3,.07,.8,2.6,.8,6.4,wd);[[-.58,-.33],[.58,-.33],[-.58,.33],[.58,.33]].forEach(a=>box(.07,.78,.07,2.6+a[0],.39,6.4+a[1],wd2));box(.5,.3,.2,2.6,.985,6.4,wd2);const gr=new THREE.Mesh(new THREE.PlaneGeometry(.26,.2),M(0x8a6b3a));gr.position.set(2.52,.985,6.298);gr.rotation.y=Math.PI;scene.add(gr);cyl(.03,.03,.03,2.74,.99,6.29,gold,8).rotation.x=Math.PI/2;cyl(.006,.006,.55,2.82,1.25,6.45,gold,6).rotation.z=-.35;
+box(.5,.06,.5,1.5,.5,6.35,wd);box(.06,.6,.5,1.27,.85,6.35,wd);[[-.2,-.2],[.2,-.2],[-.2,.2],[.2,.2]].forEach(a=>box(.05,.5,.05,1.5+a[0],.25,6.35+a[1],wd2));
+const fire=new THREE.PointLight(0xff7a30,1.2,8);fire.position.set(0,.8,6.2);scene.add(fire);
+const room=new THREE.PointLight(0xffc88a,1.1,12);room.position.set(0,3,3);scene.add(room);
+cam.position.set(0,1.6,.3);
+const doorM=new THREE.MeshStandardMaterial({color:0x7a4322,roughness:.7,emissive:0x552200,emissiveIntensity:.1});
+const door=box(2.1,2.5,.12,0,1.8,-.6,doorM);
+const brass=new THREE.MeshStandardMaterial({color:0xd9a441,metalness:.8,roughness:.25}),panM=new THREE.MeshStandardMaterial({color:0x5a3018,roughness:.8});
+const knob=new THREE.Mesh(new THREE.SphereGeometry(.07,12,12),brass);knob.position.set(.75,1.5,-.46);scene.add(knob);
+const dp=[[-.5,2.5],[.5,2.5],[-.5,1],[.5,1]].map(a=>box(.7,.8,.04,a[0],a[1],-.53,panM));
+const dl=new THREE.PointLight(0xffa447,1,6);dl.position.set(0,3.1,.4);scene.add(dl);
+const cvx=document.createElement("canvas");cvx.width=256;cvx.height=64;const g2=cvx.getContext("2d");g2.fillStyle="#2a1a0c";g2.fillRect(0,0,256,64);g2.fillStyle="#ffcf70";g2.font="bold 44px Georgia";g2.textAlign="center";g2.fillText("DOOR",128,48);
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(.9,.22),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(cvx)}));sign.position.set(0,3.35,-.49);scene.add(sign);
+const ph=new THREE.Mesh(new THREE.CircleGeometry(.028,16),new THREE.MeshBasicMaterial({color:0x000000}));ph.position.set(0,1.62,-.538);scene.add(ph);
+const ring=new THREE.Mesh(new THREE.RingGeometry(.028,.045,20),new THREE.MeshStandardMaterial({color:0xb08d57,metalness:.8,roughness:.3}));ring.position.set(0,1.62,-.537);scene.add(ring);
+const dg=new THREE.Group();dg.position.set(-1.05,0,0);scene.add(dg);[door,knob,ph,ring,...dp].forEach(o=>{scene.remove(o);o.position.x+=1.05;dg.add(o)});
+let P=null,puffs=[],pitch=0,yaw=0,tPitch=0,drag=null,t0=0;
+const keys={};
+function lock(){try{const r=cv.requestPointerLock&&cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+const locked=()=>document.pointerLockElement===cv;
+cv.addEventListener("click",()=>{if(!locked())lock()});
+addEventListener("mousemove",e=>{if(S.peep&&!locked()){yaw=-(e.clientX/innerWidth-.5)*.9;tPitch=-(e.clientY/innerHeight-.5)*.9;return}if(!locked())return;yaw-=e.movementX*.0022;tPitch=Math.max(-1.4,Math.min(1.4,tPitch-e.movementY*.0022));pitch=tPitch});
+addEventListener("keydown",e=>{const k=e.key.toLowerCase();keys[k]=1;const can=!!document.querySelector("#hud .atd")&&!S.away;
+ if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+ if(k==="m"){toggleVoice();return}
+ if(k===" "||k==="e"){if(k===" ")e.preventDefault();const hasD=!!document.querySelector("#hud .atd");if(hasD&&!S.away)peep(!S.peep);else if(!hasD){const b=document.querySelector("#hud button.d");if(b){b.click();if(!locked()&&!S.peep)lock()}}}
+ else if(S.peep&&k==="s")peep(false);
+ else if(k==="o"&&can&&S.p)decide(true);
+ else if(["1","2","3","4"].includes(k)&&can&&S.p)ask(QS[+k-1].k);
+ else if(k==="g"&&can&&S.p)decide(false);
+ else if(k==="enter"){const b=document.querySelector("#hud .atd")?null:document.querySelector("#hud button.d");if(b){b.click();if(!locked())lock()}}});
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=0);
+function makePerson(v,sg){
+ const g=new THREE.Group(),skin=new THREE.MeshStandardMaterial({color:v&&sg.includes("pale")?0xa3ad9d:pick([0xd9b49a,0xa87454,0x7a5239,0xe8cbb4])}),cl=new THREE.MeshStandardMaterial({color:pick([0x3b4a6b,0x5b3a3a,0x3f5a46,0x6a6a6a])});
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(.34,.42,1.25,12),cl);body.position.y=.82;
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.23,16,12),skin);head.position.y=1.68;
+ const eyeM=new THREE.MeshBasicMaterial({color:0x050505}),eyes=[-1,1].map(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.035,8,8),eyeM);const big=v&&sg.includes("eyes");e.userData.b=big?1.6:1;e.scale.setScalar(e.userData.b);e.position.set(s*(big?.1:.08),1.72,.2);return e});
+ const mouth=new THREE.Mesh(new THREE.BoxGeometry(.11,.025,.02),new THREE.MeshBasicMaterial({color:0x300808}));mouth.position.set(0,1.6,.215);
+ if(v&&sg.includes("grin")){mouth.scale.x=2.4;mouth.scale.y=1.6}
+ const teeth=new THREE.Mesh(new THREE.BoxGeometry(.22,.018,.01),new THREE.MeshBasicMaterial({color:0xcfcfc0}));teeth.position.set(0,1.612,.219);teeth.visible=!!(v&&sg.includes("grin"));
+ const hg=new THREE.Group();hg.position.y=1.45;[head,mouth,teeth,...eyes].forEach(o=>{o.position.y-=1.45;hg.add(o)});hg.rotation.z=v&&sg.includes("tilt")?(Math.random()<.5?1:-1)*.38:(Math.random()-.5)*.1;
+ const al=v&&sg.includes("arms")?1.15:.72+Math.random()*.08;
+ [-1,1].forEach(s=>{const a=new THREE.Mesh(new THREE.CylinderGeometry(.06,.05,al,8),cl);a.position.set(s*.46,1.38-al/2,0);g.add(a)});
+ g.add(body,hg);
+ g.traverse(o=>{if(o.isMesh)o.castShadow=!(v&&sg.includes("shadow"))});
+ return {g,eyes,v,sg,nextBlink:2,blinkEnd:0,nerv:!v&&Math.random()<.3,t:0,breathT:0}}
+function setPerson(p){if(P)scene.remove(P.g);P=p;p.g.position.set(0,0,-9);scene.add(p.g)}
+function frame(ts){const t=ts/1000,dt=Math.min(t-t0,.05);t0=t;
+ if(P){P.t+=dt;const z=P.g.position.z;if(z<-3&&!AN)P.g.position.z=Math.min(-3,z+dt*3);const zz=P.g.position.z;P.g.position.y=zz>-4.9?.2:zz>-5.4?.1:0;
+  const st=P.v&&P.sg.includes("still");if(!AN){P.g.rotation.z=st?0:Math.sin(t*1.3)*.03;P.g.position.x=st?0:Math.sin(t*.7)*.04}
+  if(!(P.v&&P.sg.includes("blink"))){const gap=P.nerv?.7:3.4;if(t>P.nextBlink){P.blinkEnd=t+.14;P.nextBlink=t+gap+Math.random()*1.5}P.eyes.forEach(e=>e.scale.y=(t<P.blinkEnd?.1:1)*(e.userData.b||1))}
+  P.breathT+=dt;if(P.breathT>1.8&&P.g.position.z>=-3&&!AN&&!(P.v&&P.sg.includes("breath"))){P.breathT=0;const m=new THREE.Mesh(new THREE.SphereGeometry(.07,8,8),new THREE.MeshBasicMaterial({color:0xcfd8e0,transparent:true,opacity:.5}));m.position.set(P.g.position.x,1.78,-2.75);m.scale.setScalar(.6);scene.add(m);puffs.push(m)}}
+ puffs=puffs.filter(m=>{m.position.y+=dt*.25;m.position.z+=dt*.25;m.scale.multiplyScalar(1+dt*1.6);m.material.opacity-=dt*.28;if(m.material.opacity<=0){scene.remove(m);return false}return true});
+ const pk=S.peep;const f=pk?0:(keys.w?1:0)-(keys.s?1:0),r=pk?0:(keys.d?1:0)-(keys.a?1:0);
+ yaw+=((keys.arrowleft?1:0)-(keys.arrowright?1:0))*dt*1.8;tPitch=Math.max(-1.2,Math.min(1,tPitch+((keys.arrowup?1:0)-(keys.arrowdown?1:0))*dt*1.5));
+ if(!pk){const sp=2.2*dt;cam.position.x=Math.max(-3.6,Math.min(3.6,cam.position.x+(-Math.sin(yaw)*f+Math.cos(yaw)*r)*sp));cam.position.z=Math.max(.3,Math.min(6.4,cam.position.z+(-Math.cos(yaw)*f-Math.sin(yaw)*r)*sp))}
+ cam.position.y=1.6+((f||r)?Math.sin(t*9)*.025:0);
+ const away=!(cam.position.z<1.4&&Math.abs(cam.position.x)<1.3);if(away!==S.away){S.away=away;document.body.classList.toggle("away",away)}
+ fire.intensity=1.1+Math.random()*.4;doorM.emissiveIntensity=(P&&S.away&&!S.peep)?.5+.4*Math.sin(t*5):.1;
+ stepAnim(dt);
+ if(pk&&P){const b=document.getElementById("bub"),v3=new THREE.Vector3(P.g.position.x+.4,P.g.position.y+1.95,P.g.position.z).project(cam);b.style.left=Math.max(8,Math.min(innerWidth-250,(v3.x*.5+.5)*innerWidth))+"px";b.style.top=Math.max(8,(-v3.y*.5+.5)*innerHeight-10)+"px"}
+ if(pk){yaw=Math.max(-.45,Math.min(.45,yaw));tPitch=Math.max(-.7,Math.min(.15,tPitch))}
+ pitch+=(tPitch-pitch)*Math.min(1,dt*5);cam.rotation.set(pitch,yaw,0);
+ const fl=Math.random()<.01?.3:1;lamp.intensity=(AN&&AN.type==="kill")?(AN.t>2.4?0:(Math.random()<.25?.15:1.6)):1.6*fl;
+ R.render(scene,cam);requestAnimationFrame(frame)}
+cv.addEventListener("pointerdown",e=>drag={x:e.clientX,y:e.clientY,yw:yaw,pt:tPitch});
+addEventListener("pointerup",()=>drag=null);
+addEventListener("pointermove",e=>{if(!drag||document.pointerLockElement)return;yaw=drag.yw+(e.clientX-drag.x)*.004;tPitch=Math.max(-1.2,Math.min(1,drag.pt+(e.clientY-drag.y)*.004))});
+function knock(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.25,.5].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=85;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.5,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.15);o.start(a.currentTime+t);o.stop(a.currentTime+t+.2)})}catch(e){}}
+// --- game
+let S={};const hud=h=>document.getElementById("hud").innerHTML=`<div class="box">${h}</div>`;
+const topbar=()=>document.getElementById("top").innerHTML=S.night===undefined?"":`<span>Night ${Math.min(S.night+1,5)} of 5</span><span>Guilt ${S.strikes}/3</span>`;
+const QS=[{k:"where",q:"Where are you coming from?"},{k:"who",q:"Who is waiting for you?"},{k:"food",q:"What did you eat today?"},{k:"home",q:"Tell me about your home."}];
+const ANS={where:{h:["The old mill road. My car died out past the creek.","From town. Everything there is boarded up now.","The farms out east. I walked since noon."],v:["From the road. The long road. The road.","From where the lights stop.","From out there. It was very warm. Now it is cold."],n:["I… I don’t know, I can’t think, I’m so cold."]},
+who:{h:["My sister. She’s not answering her phone.","My dog, Biscuit. I had to leave him.","Nobody. That’s sort of the problem."],v:["Everyone is waiting. All of them. Together.","The family. They are very hungry for me to come home.","Someone who looks like you."],n:["P-please, I just need to sit down."]},
+food:{h:["Half a sandwich, hours ago. I’m starving.","Canned peaches. Last of the cans.","Coffee. Just coffee."],v:["Food. I ate it. It was food.","Warm things. Soft things. Many.","I am not hungry. I mean, I am very hungry."],n:["Ugh, don’t ask me about food. I feel sick."]},
+home:{h:["A little yellow house on Pine Street. Green door.","An apartment above the hardware shop.","A farm. Well, it was a farm."],v:["It has walls and a door. Like yours. Exactly like yours.","A house. Houses are good. Let me see yours.","It was a nice house. I remember the shape of it."],n:["Home… I just want to go home. Please."]}};
+function ask(k){const p=S.p;if(!p||(p.asked&&p.asked[k])||!document.querySelector("#hud .atd"))return;p.asked=p.asked||{};p.asked[k]=1;const a=ANS[k],r=Math.random();p.line=pick(p.v?(r<.65?a.v:a.h):(r<.8?a.h:a.n));view();if(window.speechSynthesis)speechSynthesis.cancel();speak(p.line,p,1);if(p.v&&p.sg.includes("echo"))speak(p.line,p,.35)}
+const fade=document.getElementById('fade'),ease=x=>x<0?0:x>1?1:x*x*(3-2*x);
+let AC=null,AN=null,EX=[];
+const snd=(f0,f1,d,v,ty)=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime;o.type=ty||'sine';o.frequency.setValueAtTime(f0,n);o.frequency.exponentialRampToValueAtTime(f1,n+d);g.gain.setValueAtTime(v,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+d)}catch(e){}};
+const flash=(c,o,keep)=>{fade.style.transition='none';fade.style.background=c;fade.style.opacity=o;if(!keep)setTimeout(()=>{fade.style.transition='opacity .8s';fade.style.opacity=0},80)};
+function anim(type,p,wrong,done){AN={type,t:0,v:p.v,wrong,done};if(type==='enter')snd(70,45,1,.25,'sawtooth')}
+function stepAnim(dt){if(!AN)return;const a=AN;a.t+=dt;const T=a.t,g=P&&P.g;
+ if(a.type==='leave'&&g){g.rotation.y=Math.min(Math.PI,T*4);if(T>.8)g.position.z-=dt*(a.v?2.4:1.5);const zz=g.position.z;g.position.y=zz>-4.9?.2:zz>-5.4?.1:0;if(a.wrong&&!a.s&&T>1.8){a.s=1;snd(600,1500,.8,.14,'sawtooth');flash('#7a0000',.4)}if(T>3.6){AN=null;a.done()}}
+ else if(a.type==='enter'&&g){const o=T<3.2?ease(T):1-ease((T-3.2)/.8);dg.rotation.y=-1.4*o;if(T>1){const s=Math.min(1,(T-1)/2.4),z=-3+s*6.4;g.position.set(Math.min(1.1,Math.max(0,z+1.5)*.6),z>-.7?0:.2,z)}if(T>3.6)g.visible=false;if(T>4.1){dg.rotation.y=0;AN=null;a.done()}}
+ else if(a.type==='kill'){dg.rotation.y=-1.4*ease(T/1.2);if(!a.c){a.c=1;snd(70,45,1.1,.3,'sawtooth')}cam.position.set(0,1.6,.3);yaw*=.9;tPitch*=.9;
+  (a.mob?EX:[P]).forEach((q,i)=>{if(!q)return;const s=Math.min(1,Math.max(0,(T-1.2-i*.12)/1.5)),z=q.z0+s*s*(.1-q.z0);q.g.position.set(q.x0*(1-.85*s),z>-.7?0:.2,z)});
+  const k=Math.min(1,Math.max(0,(T-2)/.7));cam.fov=58+24*k;cam.updateProjectionMatrix();cam.position.x+=(Math.random()-.5)*.06*k;
+  if(T>2.75&&!a.f){a.f=1;flash('#8a0000',1,true);snd(500,1900,.6,.5,'sawtooth');snd(110,30,.5,.9,'sine')}
+  if(T>2.95&&!a.b){a.b=1;fade.style.background='#000'}
+  if(T>4&&!a.e){a.e=1;over()}}}
+function kill(mob){if(window.speechSynthesis)speechSynthesis.cancel();document.getElementById('hud').innerHTML='';S.busy=1;EX=[];
+ if(mob){if(P){scene.remove(P.g);P=null}EX=[-1.4,-.5,.5,1.4].map((x,i)=>{const q=makePerson(true,['still']);q.x0=x*.6;q.z0=-4-i*.3;q.g.position.set(q.x0,.2,q.z0);scene.add(q.g);return q})}else if(P){P.x0=0;P.z0=-3}
+ peep(false);AN={type:'kill',t:0,mob}}
+function resetWorld(){AN=null;if(S)S.busy=0;dg.rotation.y=0;fade.style.transition='none';fade.style.opacity=0;cam.fov=58;cam.updateProjectionMatrix();cam.position.set(0,1.6,.3);yaw=0;tPitch=0;pitch=0;EX.forEach(q=>scene.remove(q.g));EX=[];door.visible=true}
+function peep(on){if(on&&S.away)return;const was=S.peep;S.peep=on;document.body.classList.toggle("peep",on);if(on){cam.position.set(0,1.6,-.6);cam.fov=95;if(document.exitPointerLock)document.exitPointerLock()}else{cam.position.set(0,1.6,.3);cam.fov=58;if(was)lock()}cam.updateProjectionMatrix();door.visible=!on;yaw=0;tPitch=0;pitch=0}
+let voiceOn=true;
+function toggleVoice(){voiceOn=!voiceOn;document.getElementById("mute").textContent=voiceOn?"🔊 (M)":"🔇 (M)";if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel()}
+function speak(t,p,vol){if(!voiceOn||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(t),vs=speechSynthesis.getVoices().filter(v=>v.lang.startsWith("en"));u.pitch=p.pitch;u.rate=.92;u.volume=vol;if(vs.length)u.voice=vs[p.vi%vs.length];speechSynthesis.speak(u)}
+function sayPlea(p){if(S.p!==p)return;speak(p.plea,p,1);if(p.v&&p.sg.includes("echo"))speak(p.plea,p,.35)}
+function title(){S={};resetWorld();if(P){scene.remove(P.g);P=null}topbar();hud(`<h1>Please Don’t Let Them In</h1><p>Visitors look almost human. Watch through the door window and decide who comes in. Your mouse controls the view like a first-person game (click to capture it). WASD walks. At the door, press SPACE to look through the peephole (this frees your mouse so you can click Open or Send away), and SPACE again to step back. SPACE also continues the dialogue. Esc frees your cursor too. Turn your sound on for voices.</p><button class="d" onclick="S={night:0,strikes:0};lock();night()">Begin (Space)</button>`)}
+function night(){S.sigs=NIGHT_SIGNS[S.night];S.i=0;S.count=3+Math.min(S.night,2);topbar();
+ hud(`<p>📻 <i>“…Tonight, Visitors may ${S.sigs.map(x=>SIGNS[x]).join("; ")}. Do not trust anyone who… [static]”</i></p><button class="d" onclick="person()">Go to the door (Space)</button>`)}
+function person(){const v=Math.random()<.5,sg=shuf(S.sigs).slice(0,Math.random()<.5?2:1);S.p={v,sg,n:pick(NAMES),plea:pick(PLEAS),pitch:.8+Math.random()*.5,vi:Math.floor(Math.random()*9)};const pp=S.p;setPerson(makePerson(v,sg));knock();view();setTimeout(()=>sayPlea(pp),900)}
+function view(){const p=S.p;if(!p.line)p.line=p.plea;const ec=p.v&&p.sg.includes("echo"),bub=document.getElementById("bub");bub.className="on";bub.innerHTML=`<b>${p.n}</b><br>“${p.line}”`;hud(`<p class="say sub">“${p.line}” <span class="mut">— ${p.n}</span></p>${ec?`<p class="echo sub" id="ec"></p>`:""}<p class="hint">Someone is knocking. Find the glowing door (WASD), then press SPACE to use the peephole.</p><div class="atd"><p class="mut">SPACE: peephole / step back · O: open door · G: send away · 1-4: ask</p><button onclick="peep(!S.peep)">👁 Peephole (Space)</button><br>${QS.map((q,i)=>`<button ${p.asked&&p.asked[q.k]?"disabled":""} onclick="ask('${q.k}')">${q.q} (${i+1})</button>`).join("")}<br><button onclick="decide(true)">🔓 Open door (O)</button><button class="d" onclick="decide(false)">🚫 Send away (G)</button></div>`);
+ if(ec)setTimeout(()=>{if(S.p!==p)return;const e=document.getElementById("ec");if(e)e.textContent="“"+p.line+"”";bub.innerHTML+=`<br><span style="opacity:.5">“${p.line}”</span>`},700)}
+function decide(letIn){const p=S.p;if(window.speechSynthesis)speechSynthesis.cancel();peep(false);document.getElementById("bub").className="";
+ if(S.busy)return;if(letIn&&p.v)return kill(false);
+ const wrong=!letIn&&!p.v;if(wrong)S.strikes++;
+ topbar();S.busy=1;document.getElementById("hud").innerHTML="";anim(letIn?"enter":"leave",p,wrong,()=>{S.busy=0;if(S.strikes>=3)return kill(true);
+ scene.remove(P.g);P=null;S.i++;const last=S.i>=S.count;hud(`<button class="d" onclick="${last?"endNight()":"person()"}">${last?"Dawn":"Another knock…"} (Space)</button>`)})}
+function endNight(){S.night++;topbar();if(S.night>=5)return hud(`<h1>You survived</h1><button class="d" onclick="title()">Play again (Space)</button>`);hud(`<p>Dawn.</p><button class="d" onclick="night()">Night ${S.night+1} (Space)</button>`)}
+function over(){hud(`<h1>Game over</h1><button class="d" onclick="title()">Try again (Space)</button>`)}
+title();requestAnimationFrame(ts=>{t0=ts/1000;frame(ts)});
+</script></body></html>
